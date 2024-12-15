@@ -159,3 +159,77 @@ y_pred = clf_rnd.predict(X_val)
 
 print("F1 Score: ", f1_score(y_pred, y_val, average="weighted"))
 
+# ## **5.- Seleccion del modelo**
+# 
+# * Tanto los arboles de decision como los conjuntos de arboles(al igual que otros algoritmos mas complejos) representan un gran numero de hiperparametros que deben evaluarse para conseguir el mejor modelo. Una de las formas mas comunes de seleccionarlo es mediante tecnicas de seleccion del modelo.
+
+# In[13]:
+
+
+# Uso sw Grid Search para seleccion del modelo
+
+from sklearn.model_selection import GridSearchCV
+
+param_grid = [
+    #Try 9 (3x3) combinations of hyperparameters
+    {'n_estimators': [10, 5, 10], 'max_leaf_nodes': [1, 2, 3]},
+    # they try 2 (2x3) combinations whit bootsrap set as False
+    {'bootstrap': [False], 'n_estimators': [10, 50]},
+    ]
+rnd_clf = RandomForestClassifier(n_jobs=-1, random_state=42)
+
+#train across 5 folds, that's a total of (9+6)*5=75 round of training
+grid_search = GridSearchCV(rnd_clf, param_grid, cv=5,
+                          scoring='f1_weighted', return_train_score = True)
+grid_search.fit(X_train, y_train)
+
+
+# In[14]:
+
+
+grid_search.best_params_
+
+
+# In[15]:
+
+
+grid_search.best_estimator_
+
+
+# In[16]:
+
+
+cvres= grid_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print("F1 Score:", mean_score, "-", "Parametros:", params)
+
+
+# #### Es importante entender que hay parametros, como las combinaciones de las caracteristicas que hemos visto en otros ejercicios, que pueden tratarse como hiperparametros y evaluarse de la misma manera.
+# 
+# #### Esta manera que se ha programado, sirve para explorar hiperparametros, esta bien si no se tiene una gran cantidad de combinaciones y se tiene bien definidos los posibles valores. En caso contrario es posible eficientar utilizando  **RandomizeSearchCV** que funciona de manera similar al caso anterior, pero realizando una busqueda sobre valores randomizados. 
+
+# In[17]:
+
+
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+
+# In[18]:
+
+
+params_distribs = {
+    'n_estimators': randint(low=1, high=200),
+    'max_depth': randint(low=8, high=50),
+}
+
+rnd_clf  = RandomForestClassifier(n_jobs=-1)
+
+# Train cross 2 folds, that's a total of 5*2=10 round of training
+
+rnd_search = RandomizedSearchCV(rnd_clf, param_distributions=params_distribs,
+                               n_iter=5, cv=2, scoring="f1_weighted")
+
+
+rnd_search.fit(X_train, y_train)
+
